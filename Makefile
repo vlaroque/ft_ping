@@ -18,7 +18,7 @@ CFLAGS = -Wextra -Werror -Wall
 
 # SOURCES
 
-SRC_FILES = ft_ping.c init.c icmp_packet.c dest.c
+SRC_FILES = ft_ping.c init.c icmp_packet.c dest.c arguments_parsing.c
 
 # PATH
 
@@ -32,6 +32,11 @@ SRC_FILES_FULL_PATH = $(addprefix $(SRC_PATH)/,$(SRC_FILES))
 OBJ_FILES = $(SRC_FILES:.c=.o)
 OBJ_FILES_FULL_PATH = $(addprefix $(OBJ_PATH)/,$(OBJ_FILES))
 DEPENDS = $(OBJ_FILES_FULL_PATH:.o=.d)
+
+# DEBUG
+ifeq ($(DEBUG), 1)
+    CFLAGS += -DENABLE_DEBUG -g
+endif
 
 .PHONY: all
 all: $(NAME)
