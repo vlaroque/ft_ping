@@ -10,6 +10,7 @@ typedef struct ping_env_s
 	uid_t               user_id;
 	pid_t               process_id;
 	bool                is_root;
+	int                 interval_ms;
 	bool                verbose;
 	bool                print_help;
 	int                 count;

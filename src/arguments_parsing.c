@@ -11,16 +11,18 @@ static const char doc[]      = "ft_ping - send ICMP ECHO_REQUEST to network host
 static const char args_doc[] = "<DESTINATION>";
 
 static struct argp_option options[] = {
-    {"count",   'c', "count",  0, "stop after <count> replies",                    0},
-    {"size",    's', "bytes",  0, "use <size> as number of data bytes to be sent", 0},
-    {"verbose", 'v', 0,        0, "verbose output",                                0},
-    {"debug",   'x', 0,        0, "debug output",                                  0},
+    {"count",    'c', "count",   0, "stop after <count> replies",                    0},
+    {"interval", 'i', "seconds", 0, "seconds between sending each packet",           0},
+    {"size",     's', "bytes",   0, "use <size> as number of data bytes to be sent", 0},
+    {"verbose",  'v', 0,         0, "verbose output",                                0},
+    {"debug",    'x', 0,         0, "debug output",                                  0},
     {0}
 };
 
 static error_t args_parsing_fonction(int key, char *arg, struct argp_state *state)
 {
 	ping_env_t *ping_env = state->input;
+	char *end_ptr;
 
 	switch (key)
 	{
@@ -29,7 +31,18 @@ static error_t args_parsing_fonction(int key, char *arg, struct argp_state *stat
 		break;
 
 	case 'c':
-		ping_env->count = strtol(arg, NULL, 10);
+		ping_env->count = strtol(arg, &end_ptr, 10);
+		break;
+
+	case 'i':
+		double interval = strtod(arg, &end_ptr);
+		if ( arg == end_ptr || *end_ptr != '\0' || errno == ERANGE
+			 || interval < 0 || interval > (INT_MAX / 1000 ) )
+		{
+			argp_error(state, "Invalid value for interval: '%s'", arg);
+		}
+		ping_env->interval_ms = interval * 1000;
+
 		break;
 
 	case 's':

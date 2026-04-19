@@ -38,7 +38,10 @@ static bool dns_resolv(ping_env_t *env)
 
 bool init(ping_env_t *env)
 {
-	DEBUG(">>>count=%d", env->count);
+	DEBUG("count=%d", env->count);
+
+	env->process_id = getpid();
+	DEBUG("process id = %d", env->process_id);
 
 	if (inet_pton(AF_INET, env->target, &env->target_sock_addr.sin_addr) != 0)
 	{
