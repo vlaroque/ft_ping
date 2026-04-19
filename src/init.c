@@ -13,15 +13,16 @@ static bool dns_resolv(ping_env_t *env)
 
 	if (host == NULL)
 	{
-		printf("Failed to resolve host\n");
+		DEBUG("Failed to resolve host\n");
 		return false;
 	}
 
 	const char *ip_dest = inet_ntoa(*(struct in_addr *)host->h_addr_list[0]);
+
 	DEBUG("ip_dest = [%s]", ip_dest);
 
 	if (strlen(ip_dest) < INET_ADDRSTRLEN)
-		strcpy(env->ip_addr, ip_dest);
+		strncpy(env->ip_addr, ip_dest, INET_ADDRSTRLEN);
 
 	DEBUG("g_env_ip = %s", env->ip_addr);
 
@@ -44,11 +45,15 @@ bool init(ping_env_t *env)
 		env->target_sock_addr.sin_family = AF_INET;
 		env->target_sock_addr.sin_port = 0;
 		DEBUG("argument is valid ip v4");
+		return true;
 	}
-	else
+
+	DEBUG("argument is not a valid ip address try to resolve it");
+	if ( !dns_resolv(env) )
 	{
-		DEBUG("argument is not a valid ip address try to resolve it");
-		dns_resolv(env);
+		fprintf(stderr, "ping: %s: Name or service not known", env->target);
+
+		return false;
 	}
 
 	return true;

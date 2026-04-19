@@ -16,6 +16,7 @@ typedef struct icmp_packet_s
     uint8_t data[DATA_SIZE];
 } icmp_packet_t;
 
-icmp_packet_t init_echo_icmp_packet(pid_t pid, uint16_t seq);
+icmp_packet_t icmp_packet_init(uint16_t seq);
+void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence);
 
 #endif  /* __ICMP_PACKET_H */

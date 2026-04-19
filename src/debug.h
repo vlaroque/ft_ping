@@ -9,4 +9,6 @@
     #define DEBUG(fmt, ...)
 #endif
 
+#define PING_ERR(fmt, ...) fprintf(stderr, "ft_ping: " fmt "\n", ##__VA_ARGS__)
+
 #endif /* DEBUG_H */
