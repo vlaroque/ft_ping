@@ -42,6 +42,7 @@ bool init(ping_env_t *env)
 
 	env->process_id = getpid();
 	DEBUG("process id = %d", env->process_id);
+	env->identity = (env->process_id & 0xFFFF);
 
 	if (inet_pton(AF_INET, env->target, &env->target_sock_addr.sin_addr) != 0)
 	{

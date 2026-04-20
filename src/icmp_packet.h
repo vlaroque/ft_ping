@@ -2,7 +2,9 @@
 #define __ICMP_PACKET_H
 
 #include <netinet/ip_icmp.h>
-#include <time.h>
+#include <time.h> /*timespec*/
+
+#include <stdbool.h>
 
 #define ICMP_PAYLOAD_SIZE 32
 #define TIMEVAL_SIZE 2 * 8 /* 2 x long size */
@@ -16,7 +18,8 @@ typedef struct icmp_packet_s
     uint8_t data[DATA_SIZE];
 } icmp_packet_t;
 
-icmp_packet_t icmp_packet_init(pid_t pid, uint16_t seq);
+icmp_packet_t icmp_packet_init(uint16_t identity, uint16_t seq);
 void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence);
+bool open_icmp_socket(int *fd);
 
 #endif  /* __ICMP_PACKET_H */
