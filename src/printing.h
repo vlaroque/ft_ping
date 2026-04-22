@@ -1,5 +1,5 @@
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef PRINTING_H
+#define PRINTING_H
 
 #include <stdio.h>
 
@@ -13,4 +13,4 @@
 
 #define PING_ERR(fmt, ...) fprintf(stderr, "ft_ping: " fmt "\n", ##__VA_ARGS__)
 
-#endif /* DEBUG_H */
+#endif /* PRINTING_H */

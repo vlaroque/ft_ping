@@ -5,7 +5,8 @@
 #include <errno.h>
 
 #include "icmp_packet.h"
-#include "debug.h"
+#include "ft_ping.h"
+#include "printing.h"
 
 static uint16_t calculate_checksum(uint8_t *buffer, int length) {
 	uint32_t result = 0;
@@ -47,22 +48,33 @@ icmp_packet_t icmp_packet_init(uint16_t identity, uint16_t seq)
 	return res;
 }
 
-void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence, size_t size)
+void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence, size_t size, bool ping_support_timing)
 {
 	packet->icmp_header.un.echo.sequence = htons(sequence);
 	packet->icmp_header.checksum         = 0;
-	clock_gettime(CLOCK_MONOTONIC, &packet->time_stamp);
+
+	if (ping_support_timing)
+		clock_gettime(CLOCK_MONOTONIC, &packet->time_stamp);
+
 	packet->icmp_header.checksum         = calculate_checksum((uint8_t *)packet, size);
 }
 
-bool open_icmp_socket(int *fd)
+bool open_icmp_socket(ping_env_t *env, int *fd)
 {
 	int ret_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-	// socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
 
-	if (ret_fd < 2)
+	env->id_check = true;
+
+	if (ret_fd < 0 && ( errno == EPERM || errno == EACCES))
 	{
-		printf("ping: icmp open socket: %s.\n", strerror(errno));
+		errno = 0;
+		ret_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+		env->id_check = false;
+		DEBUG("ICMP SOCKET : no id check");
+	}
+	else if (ret_fd < 0)
+	{
+		PING_ERR("icmp open socket: %s.", strerror(errno));
 
 		return false;
 	}

@@ -2,20 +2,25 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <netinet/ip.h>
+#include <time.h>         /* struct timespec */
 
 #include "arguments_parsing.h"
 #include "init.h"
+#include "printing.h"
 
 
 static const char doc[]      = "ft_ping - send ICMP ECHO_REQUEST to network hosts";
 static const char args_doc[] = "<DESTINATION>";
 
 static struct argp_option options[] = {
-    {"count",    'c', "count",   0, "stop after <count> replies",                    0},
-    {"interval", 'i', "seconds", 0, "seconds between sending each packet",           0},
-    {"size",     's', "bytes",   0, "use <size> as number of data bytes to be sent", 0},
-    {"verbose",  'v', 0,         0, "verbose output",                                0},
-    {0}
+	{"count",    'c', "count",   0, "stop after <count> replies",                              0},
+	{"preload",  'l', "count",   0, "send <preload> number of packages while waiting replies", 0},
+	{"interval", 'i', "seconds", 0, "seconds between sending each packet",                     0},
+	{"size",     's', "bytes",   0, "use <size> as number of data bytes to be sent",           0},
+	{"ttl",      't', "<TTL>",   0, "define time to live",                                     0},
+	{"verbose",  'v',  0,        0, "verbose output",                                          0},
+	{0}
 };
 
 static error_t args_parsing_fonction(int key, char *arg, struct argp_state *state)
@@ -33,6 +38,17 @@ static error_t args_parsing_fonction(int key, char *arg, struct argp_state *stat
 		ping_env->count = strtol(arg, &end_ptr, 10);
 		break;
 
+	case 'l':
+		unsigned long preload = strtoul(arg, &end_ptr, 0);
+
+		if (*end_ptr || preload > INT_MAX)
+		{
+			argp_error(state, "invalid preload value (%s)", arg);
+		}
+
+		ping_env->preload = preload;
+		break;
+
 	case 'i':
 		double interval = strtod(arg, &end_ptr);
 		if ( arg == end_ptr || *end_ptr != '\0' || errno == ERANGE
@@ -45,8 +61,22 @@ static error_t args_parsing_fonction(int key, char *arg, struct argp_state *stat
 		break;
 
 	case 's':
-		ping_env->size = atoi(arg);
+	{
+		long size = strtol(arg, &end_ptr, 10);
+		if (arg == end_ptr || *end_ptr != '\0' || errno == ERANGE || size < 0 || size > IP_MAXPACKET)
+		{
+			argp_error(state, "Invalid value for packet size: '%s'. Limit is 0 to %d.", arg, IP_MAXPACKET);
+		}
+
+		ping_env->size = size;
+
+		if ( ping_env->size < sizeof(struct timespec))
+		{
+			DEBUG("NO TIMING supported size of struct timespec %zu", sizeof(struct timespec));
+			ping_env->ping_support_timing = false;
+		}
 		break;
+	}
 
 	case ARGP_KEY_ARG:
 		if (state->arg_num >= 1)

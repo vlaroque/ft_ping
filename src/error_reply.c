@@ -4,6 +4,59 @@
 #include "error_reply.h"
 #include "icmp_packet.h"
 
+void dump_ip_data(struct iphdr *ip_header)
+{
+	printf("IP Hdr Dump:\n");
+
+	for( size_t index = 0; index < sizeof(struct iphdr); index++ )
+	{
+		printf("%02x", *((uint8_t *)ip_header + index) );
+		if (index % 2)
+			printf(" ");
+	}
+	printf("\n");
+}
+
+void ip_header_print(ping_env_t *env, struct iphdr *ip_header)
+{
+	if ( env->verbose )
+		dump_ip_data(ip_header);
+
+	printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src\tDst\n");
+	printf(" %1x", ip_header->version);
+	printf("  %1x", ip_header->ihl);
+	printf("  %02x", ip_header->tos);
+	printf(" %04x", ntohs(ip_header->tot_len));
+	printf(" %04x", ntohs(ip_header->id));
+	printf("   %1x", (ntohs(ip_header->frag_off) & 0xe000) >> 13);
+	printf(" %04x", ntohs(ip_header->frag_off) & 0x1fff);
+	printf("  %02x", ip_header->ttl);
+	printf("  %02x", ip_header->protocol);
+	printf(" %04x", ntohs(ip_header->check));
+	struct in_addr src = { .s_addr = ip_header->saddr };
+	struct in_addr dst = { .s_addr = ip_header->daddr };
+	printf(" %s ", inet_ntoa(src));
+	printf(" %s\n", inet_ntoa(dst) );
+}
+
+void ip_data_print(ping_env_t *env, struct icmphdr *icmp_header)
+{
+	/* header of the packet that was replied for */
+	struct iphdr *ip_header = (struct iphdr *)(icmp_header + 1);
+	int           ip_hlen   = ip_header->ihl << 2;
+	int           icmp_size = ntohs(ip_header->tot_len) - ip_hlen;
+
+	ip_header_print(env, ip_header);
+
+	struct icmphdr *orig_icmp = (struct icmphdr *)((unsigned char *)ip_header+ (ip_header->ihl << 2));
+	printf("ICMP: type %u, code %u, size %d", orig_icmp->type, orig_icmp->code, icmp_size);
+
+	if (icmp_header->type == ICMP_ECHOREPLY || icmp_header->type == ICMP_ECHO)
+		printf(", id 0x%04x, seq 0x%04x", ntohs(orig_icmp->un.echo.id), ntohs(orig_icmp->un.echo.sequence));
+
+	printf("\n");
+}
+
 void unreach_icmp_code_print(int code)
 {
 	switch (code)
@@ -88,7 +141,7 @@ void time_exceeded_code_print(int code)
 		printf("Time exceeded, Unknown Code: %d", code);
 }
 
-void echo_error_reply_handle(icmp_packet_t *resp_packet, struct sockaddr_in *sender_addr, size_t icmp_packet_size)
+void echo_error_reply_handle(ping_env_t *env, icmp_packet_t *resp_packet, struct sockaddr_in *sender_addr, size_t icmp_packet_size)
 {
 	printf("%zu bytes from %s: ", icmp_packet_size, inet_ntoa(sender_addr->sin_addr));
 
@@ -101,14 +154,21 @@ void echo_error_reply_handle(icmp_packet_t *resp_packet, struct sockaddr_in *sen
 
 	case ICMP_DEST_UNREACH:
 		unreach_icmp_code_print(resp_packet->icmp_header.code);
+		if (env->verbose)
+			ip_data_print(env, &resp_packet->icmp_header);
+
 		break;
 
 	case ICMP_SOURCE_QUENCH:
 		printf("Source Quench\n");
+		ip_data_print(env, &resp_packet->icmp_header);
 		break;
 
 	case ICMP_REDIRECT:
 		redirect_icmp_code_print(resp_packet->icmp_header.code);
+		if (env->verbose)
+			ip_data_print(env, &resp_packet->icmp_header);
+
 		break;
 
 	case ICMP_ECHO:
@@ -125,11 +185,14 @@ void echo_error_reply_handle(icmp_packet_t *resp_packet, struct sockaddr_in *sen
 
 	case ICMP_TIME_EXCEEDED:
 		time_exceeded_code_print(resp_packet->icmp_header.code);
+		if (env->verbose)
+			ip_data_print(env, &resp_packet->icmp_header);
 		break;
 
 	case ICMP_PARAMETERPROB:
 		printf("Parameter problem: pointer = %u\n", 
 		       (ntohl(resp_packet->icmp_header.un.gateway) >> 24) & 0xFF);
+		ip_data_print(env, &resp_packet->icmp_header);
 		break;
 
 	case ICMP_TIMESTAMP:

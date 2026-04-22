@@ -1,5 +1,5 @@
 #include "init.h"
-#include "debug.h"
+#include "printing.h"
 
 #include <netdb.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ static bool dns_resolv(ping_env_t *env)
 
 bool init(ping_env_t *env)
 {
-	DEBUG("count=%d", env->count);
+	DEBUG("count=%zu", env->count);
 
 	env->process_id = getpid();
 	DEBUG("process id = %d", env->process_id);
@@ -55,7 +55,7 @@ bool init(ping_env_t *env)
 	DEBUG("argument is not a valid ip address try to resolve it");
 	if ( !dns_resolv(env) )
 	{
-		fprintf(stderr, "ping: %s: Name or service not known", env->target);
+		PING_ERR("%s: Name or service not known", env->target);
 
 		return false;
 	}
