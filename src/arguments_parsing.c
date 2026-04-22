@@ -15,7 +15,6 @@ static struct argp_option options[] = {
     {"interval", 'i', "seconds", 0, "seconds between sending each packet",           0},
     {"size",     's', "bytes",   0, "use <size> as number of data bytes to be sent", 0},
     {"verbose",  'v', 0,         0, "verbose output",                                0},
-    {"debug",    'x', 0,         0, "debug output",                                  0},
     {0}
 };
 
@@ -27,7 +26,7 @@ static error_t args_parsing_fonction(int key, char *arg, struct argp_state *stat
 	switch (key)
 	{
 	case 'v':
-		ping_env->verbose = 1;
+		ping_env->verbose = true;
 		break;
 
 	case 'c':

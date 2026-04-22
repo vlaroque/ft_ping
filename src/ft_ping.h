@@ -3,20 +3,21 @@
 
 #include <unistd.h>             /* pid gid */
 #include <netinet/in.h>         /* INET_ADDRSTRLEN */
+#include <stdint.h>             /* UINT16_MAX */
 
+#define SEQ_BIT_MAP_SIZE (UINT16_MAX/8)
 
 typedef struct ping_env_s
 {
 	uid_t               user_id;
 	pid_t               process_id;
 	uint16_t            identity;
-	size_t              payload_size;
 	bool                is_root;
 	int                 interval_ms;
 	bool                verbose;
 	bool                print_help;
 	int                 count;
-	int                 size;
+	size_t              size;                   /* size of icmp packet */
 	char               *target;
 	struct sockaddr_in  target_sock_addr;
 	char                ip_addr[INET_ADDRSTRLEN];
@@ -24,6 +25,13 @@ typedef struct ping_env_s
 	size_t              sent_pings;
 	size_t              received_pings;
 	size_t              duplicated_pings;
+
+	double              total_time;
+	double              min_time;
+	double              max_time;
+	double              square_root_time;
+
+	uint8_t             seq_bit_map[SEQ_BIT_MAP_SIZE];
 } ping_env_t;
 
 

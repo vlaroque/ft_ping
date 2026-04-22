@@ -47,12 +47,12 @@ icmp_packet_t icmp_packet_init(uint16_t identity, uint16_t seq)
 	return res;
 }
 
-void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence)
+void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence, size_t size)
 {
 	packet->icmp_header.un.echo.sequence = htons(sequence);
 	packet->icmp_header.checksum         = 0;
 	clock_gettime(CLOCK_MONOTONIC, &packet->time_stamp);
-	packet->icmp_header.checksum         = calculate_checksum((uint8_t *)packet, sizeof(icmp_packet_t));
+	packet->icmp_header.checksum         = calculate_checksum((uint8_t *)packet, size);
 }
 
 bool open_icmp_socket(int *fd)

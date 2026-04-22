@@ -5,9 +5,14 @@
 #include <arpa/inet.h> /* inet_ntoa */
 #include <time.h>	   /* timespec */
 #include <signal.h>	   /* sig_atomic_t */
+#include <netinet/ip.h>
 
 #include "run.h"
 #include "debug.h"
+#include "duplicate.h"
+#include "error_reply.h"
+
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 volatile sig_atomic_t g_keep_running = 1;
 
@@ -32,17 +37,59 @@ static double timespec_diff_in_ms(struct timespec start, struct timespec end)
 	return (double)seconds * 1000.0 + (double)nano_seconds / 1000000.0;
 }
 
-bool echo_reply_handle(ping_env_t *env, icmp_packet_t *resp_packet, ssize_t recv_ret, struct sockaddr_in* sender_addr, double rtt)
+void echo_reply_take_stats(ping_env_t *env, int rtt)
 {
-	uint16_t identity = ntohs(resp_packet->icmp_header.un.echo.id);
+	env->total_time += rtt;
+	env->square_root_time += ( rtt * rtt );
+	if ( rtt < env->min_time )
+		env->min_time = rtt;
+	if ( rtt > env->max_time )
+		env->max_time = rtt;
+}
 
+void echo_reply_print(size_t len, struct in_addr *sender, uint16_t seq,
+                      uint8_t ttl, bool time, double rtt, bool duplicate)
+{
+	printf("%ld bytes from %s: icmp_seq=%u ttl=%d", len, inet_ntoa(*sender), seq, ttl);
+
+	if (time)
+		printf(" time=%.3f ms", rtt);
+	if (duplicate)
+		printf(" (DUP!)");
+
+	printf("\n");
+}
+
+bool echo_reply_handle(ping_env_t *env, icmp_packet_t *resp_packet, struct sockaddr_in* sender_addr,
+                       double rtt, size_t icmp_packet_size, uint8_t ttl)
+{
+	bool     is_duplicate = false;
+	bool     contain_time = true;
+
+	uint16_t identity     = ntohs(resp_packet->icmp_header.un.echo.id);
+	
 	if ( identity != env->identity)
 		return false;
 
-	env->received_pings += 1;
+	uint16_t sequence = ntohs(resp_packet->icmp_header.un.echo.sequence);
+
+	if ( !seq_bit_is_duplicate(env, sequence) )
+	{
+		seq_bit_ack_received(env, sequence);
+		env->received_pings += 1;
+	}
+	else
+	{
+		env->duplicated_pings += 1;
+		is_duplicate = true;
+	}
+
+	echo_reply_take_stats(env, rtt);
+
+	echo_reply_print(icmp_packet_size, &sender_addr->sin_addr, sequence, ttl, contain_time, rtt, is_duplicate);
 
 	DEBUG("%zu bytes from %s received type = %d code = %d id = %d icmp_seq = %d checksum=%d time=%f\n",
-	  recv_ret,
+	  icmp_packet_size,
 	  inet_ntoa(sender_addr->sin_addr),
 	  resp_packet->icmp_header.type,
 	  resp_packet->icmp_header.code,
@@ -54,7 +101,24 @@ bool echo_reply_handle(ping_env_t *env, icmp_packet_t *resp_packet, ssize_t recv
 	return true;
 }
 
-bool receive_pong(ping_env_t *env, int fd)
+bool is_echo_reply(ping_env_t *env, struct icmphdr *icmp_header)
+{
+	struct iphdr *ping_ip_header = (struct iphdr *)(icmp_header + 1);
+
+	struct icmphdr *ping_icmp_header = (struct icmphdr *)((unsigned char *)ping_ip_header + (ping_ip_header->ihl << 2));
+
+	if (ping_ip_header->daddr == env->target_sock_addr.sin_addr.s_addr
+	        && ping_ip_header->protocol == IPPROTO_ICMP
+	        && ping_icmp_header->type == ICMP_ECHO
+	        && (ntohs(ping_icmp_header->un.echo.id) == env->identity))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool receiving_loop(ping_env_t *env, int fd)
 {
 	struct timespec start_time, current_time;
 	struct pollfd poll_fd =
@@ -102,14 +166,16 @@ bool receive_pong(ping_env_t *env, int fd)
 			continue;
 		}
 
-		struct iphdr *ip_hdr = (struct iphdr *)recv_buff;
-		icmp_packet_t *resp_packet = (icmp_packet_t *)(recv_buff + (ip_hdr->ihl * 4));
+		struct iphdr  *ip_header        = (struct iphdr *)recv_buff;
+		size_t         ip_header_size   = ip_header->ihl * 4;
+		icmp_packet_t *resp_packet      = (icmp_packet_t *)(recv_buff + ip_header_size);
+		size_t         icmp_packet_size = recv_ret - ip_header_size;
 
 		if (resp_packet->icmp_header.type == ICMP_ECHOREPLY)
 		{
-			double rtt = timespec_diff_in_ms(resp_packet->time_stamp, current_time);
+			double rtt_in_ms = timespec_diff_in_ms(resp_packet->time_stamp, current_time);
 
-			echo_reply_handle(env, resp_packet, recv_ret, &sender_address, rtt);
+			echo_reply_handle(env, resp_packet, &sender_address, rtt_in_ms, icmp_packet_size, ip_header->ttl);
 		}
 		else if (resp_packet->icmp_header.type == ICMP_TIMESTAMPREPLY
 			|| resp_packet->icmp_header.type == ICMP_ADDRESSREPLY
@@ -122,7 +188,10 @@ bool receive_pong(ping_env_t *env, int fd)
 		}
 		else
 		{
-			// check if it's my reply
+			if (!is_echo_reply(env, (struct icmphdr *)resp_packet))
+				continue;
+			
+			echo_error_reply_handle(resp_packet, &sender_address, icmp_packet_size);
 		}
 	}
 
@@ -137,9 +206,9 @@ bool main_loop_run(ping_env_t *env, int fd)
 	while (g_keep_running)
 	{
 		// struct sockaddr_in addr = get_dest();
-		icmp_packet_update(&packet, sequence_id);
+		icmp_packet_update(&packet, sequence_id, env->size);
 
-		ssize_t len = sendto(fd, &packet, sizeof(icmp_packet_t), 0, (struct sockaddr *)&env->target_sock_addr, sizeof(struct sockaddr_in));
+		ssize_t len = sendto(fd, &packet, env->size, 0, (struct sockaddr *)&env->target_sock_addr, sizeof(struct sockaddr_in));
 
 		if (len == 0)
 		{
@@ -156,7 +225,7 @@ bool main_loop_run(ping_env_t *env, int fd)
 
 		DEBUG("send %ld bytes\n", len);
 
-		receive_pong(env, fd);
+		receiving_loop(env, fd);
 		sequence_id++;
 	}
 

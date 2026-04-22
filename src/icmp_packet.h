@@ -19,7 +19,7 @@ typedef struct icmp_packet_s
 } icmp_packet_t;
 
 icmp_packet_t icmp_packet_init(uint16_t identity, uint16_t seq);
-void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence);
+void icmp_packet_update(icmp_packet_t *packet, uint16_t sequence, size_t size);
 bool open_icmp_socket(int *fd);
 
 #endif  /* __ICMP_PACKET_H */

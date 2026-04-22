@@ -18,7 +18,8 @@ CFLAGS = -Wextra -Werror -Wall
 
 # SOURCES
 
-SRC_FILES = ft_ping.c init.c icmp_packet.c dest.c arguments_parsing.c run.c
+SRC_FILES = ft_ping.c init.c icmp_packet.c dest.c arguments_parsing.c run.c \
+            duplicate.c error_reply.c
 
 # PATH
 

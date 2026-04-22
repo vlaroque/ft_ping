@@ -25,13 +25,13 @@ void print_stats(ping_env_t *env)
 		int percentage = ( ( env->sent_pings - env->received_pings) * 100 ) / env->sent_pings;
 		printf("%d%% packet loss", percentage);
 	}
-	printf("END\n");
+	printf("\n");
 }
 
 void print_header(ping_env_t *env)
 {
 	printf("FT_PING %s (%s): %zu data bytes",
-	       env->target, inet_ntoa(env->target_sock_addr.sin_addr), env->payload_size);
+	       env->target, inet_ntoa(env->target_sock_addr.sin_addr), env->size);
 	if (env->verbose)
 		printf(", id 0x%04x = %u", env->identity, env->identity);
 	
@@ -43,7 +43,7 @@ int main(int ac, char **av)
 	int fd = 0;
 	ping_env_t env = {
 		.interval_ms = 1000,
-		.payload_size = 64
+		.size = 64
 	};
 
 	if (!parse_args(&env, ac, av))
