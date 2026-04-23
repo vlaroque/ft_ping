@@ -17,10 +17,11 @@ typedef struct ping_env_s
 	bool                verbose;
 	bool                print_help;
 	bool                ping_support_timing;
-	bool                id_check;
+	bool                using_raw_socket;
 	size_t              count;
 	size_t              size;                   /* size of icmp packet */
 	int                 preload;
+	int                 ttl;
 	char               *target;
 	struct sockaddr_in  target_sock_addr;
 	char                ip_addr[INET_ADDRSTRLEN];

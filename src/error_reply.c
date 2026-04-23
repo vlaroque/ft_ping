@@ -22,7 +22,7 @@ void ip_header_print(ping_env_t *env, struct iphdr *ip_header)
 	if ( env->verbose )
 		dump_ip_data(ip_header);
 
-	printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src\tDst\n");
+	printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src\tDst\tData\n");
 	printf(" %1x", ip_header->version);
 	printf("  %1x", ip_header->ihl);
 	printf("  %02x", ip_header->tos);
@@ -36,12 +36,24 @@ void ip_header_print(ping_env_t *env, struct iphdr *ip_header)
 	struct in_addr src = { .s_addr = ip_header->saddr };
 	struct in_addr dst = { .s_addr = ip_header->daddr };
 	printf(" %s ", inet_ntoa(src));
-	printf(" %s\n", inet_ntoa(dst) );
+	printf(" %s ", inet_ntoa(dst) );
+
+	/* here we print the options of ip packet's header */
+	size_t   ip_hlen   = ip_header->ihl << 2;
+	uint8_t *cp = (uint8_t *)ip_header + sizeof(*ip_header);
+
+	while (ip_hlen > sizeof(*ip_header))
+	{
+		printf("%02x", *cp);
+		cp++;
+		ip_hlen--;
+	}
+	printf("\n");
 }
 
 void ip_data_print(ping_env_t *env, struct icmphdr *icmp_header)
 {
-	/* header of the packet that was replied for */
+	/* header of the packet that was replied to the ping */
 	struct iphdr *ip_header = (struct iphdr *)(icmp_header + 1);
 	int           ip_hlen   = ip_header->ihl << 2;
 	int           icmp_size = ntohs(ip_header->tot_len) - ip_hlen;
@@ -51,7 +63,7 @@ void ip_data_print(ping_env_t *env, struct icmphdr *icmp_header)
 	struct icmphdr *orig_icmp = (struct icmphdr *)((unsigned char *)ip_header+ (ip_header->ihl << 2));
 	printf("ICMP: type %u, code %u, size %d", orig_icmp->type, orig_icmp->code, icmp_size);
 
-	if (icmp_header->type == ICMP_ECHOREPLY || icmp_header->type == ICMP_ECHO)
+	if (orig_icmp->type == ICMP_ECHOREPLY || orig_icmp->type == ICMP_ECHO)
 		printf(", id 0x%04x, seq 0x%04x", ntohs(orig_icmp->un.echo.id), ntohs(orig_icmp->un.echo.sequence));
 
 	printf("\n");

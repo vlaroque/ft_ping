@@ -12,24 +12,20 @@ static uint16_t calculate_checksum(uint8_t *buffer, int length) {
 	uint32_t result = 0;
 	uint16_t *data = (uint16_t *)buffer;
 
-	/* Add all 16 bytes words together */
 	while (length > 1) {
 		result += *data;
 		data++;
 		length -= 2;
 	}
 
-	/* Add the last remaining byte if it remains */
 	if (length == 1) {
 		result += *(uint8_t *)data;
 	}
 
-	/* Put 32 bit result into 16 bits, loop needed if carries remain */
 	while (result >> 16) {
 		result = (result & 0xFFFF) + (result >> 16);
 	}
 
-	/* Return one's complement */
 	return ~result;
 }
 
@@ -63,20 +59,29 @@ bool open_icmp_socket(ping_env_t *env, int *fd)
 {
 	int ret_fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
-	env->id_check = true;
+	env->using_raw_socket = true;
 
 	if (ret_fd < 0 && ( errno == EPERM || errno == EACCES))
 	{
 		errno = 0;
 		ret_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
-		env->id_check = false;
+		
+		int on = 1;
+		setsockopt(ret_fd, IPPROTO_IP, IP_RECVTTL, &on, sizeof(on));
+
+		env->using_raw_socket = false;
 		DEBUG("ICMP SOCKET : no id check");
 	}
-	else if (ret_fd < 0)
+
+	if (ret_fd < 0)
 	{
 		PING_ERR("icmp open socket: %s.", strerror(errno));
-
 		return false;
+	}
+
+	if (env->ttl > 0)
+	{
+		setsockopt(ret_fd, IPPROTO_IP, IP_TTL, &env->ttl, sizeof(env->ttl));
 	}
 
 	DEBUG("fd opened %d\n", ret_fd);

@@ -15,7 +15,7 @@ static const char args_doc[] = "<DESTINATION>";
 
 static struct argp_option options[] = {
 	{"count",    'c', "count",   0, "stop after <count> replies",                              0},
-	{"preload",  'l', "count",   0, "send <preload> number of packages while waiting replies", 0},
+	{"preload",  'l', "count",   0, "send <count> number of packages while waiting replies",   0},
 	{"interval", 'i', "seconds", 0, "seconds between sending each packet",                     0},
 	{"size",     's', "bytes",   0, "use <size> as number of data bytes to be sent",           0},
 	{"ttl",      't', "<TTL>",   0, "define time to live",                                     0},
@@ -75,6 +75,17 @@ static error_t args_parsing_fonction(int key, char *arg, struct argp_state *stat
 			DEBUG("NO TIMING supported size of struct timespec %zu", sizeof(struct timespec));
 			ping_env->ping_support_timing = false;
 		}
+		break;
+	}
+
+	case 't':
+	{
+		long ttl = strtol(arg, &end_ptr, 10);
+		if (arg == end_ptr || *end_ptr != '\0' || errno == ERANGE || ttl < 1 || ttl > 255)
+		{
+			argp_error(state, "Invalid value for TTL: '%s'. Limit is 1 to 255.", arg);
+		}
+		ping_env->ttl = (int)ttl;
 		break;
 	}
 
