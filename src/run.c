@@ -166,7 +166,7 @@ bool send_echo_request(ping_env_t *env, int fd, icmp_packet_t *packet, uint16_t 
 bool main_loop_run(ping_env_t *env, int fd)
 {
 	icmp_packet_t packet = icmp_packet_init(env->identity, 0);
-	uint16_t sequence_id = 1;
+	uint16_t sequence_id = 0;
 
 	for (long i = 0; i < env->preload; i++)
 	{
@@ -178,7 +178,7 @@ bool main_loop_run(ping_env_t *env, int fd)
 			return false;
 
 		sequence_id++;
-		if ( env->count > 0 && sequence_id > env->count)
+		if ( env->count > 0 && sequence_id >= env->count)
 			return true;
 	}
 
@@ -195,7 +195,7 @@ bool main_loop_run(ping_env_t *env, int fd)
 
 		receiving_loop(env, fd);
 		sequence_id++;
-		if ( env->count > 0 && sequence_id > env->count)
+		if ( env->count > 0 && sequence_id >= env->count)
 			return true;
 	}
 

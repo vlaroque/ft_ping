@@ -55,7 +55,7 @@ bool init(ping_env_t *env)
 	DEBUG("argument is not a valid ip address try to resolve it");
 	if ( !dns_resolv(env) )
 	{
-		PING_ERR("%s: Name or service not known", env->target);
+		PING_ERR("unknown host");
 
 		return false;
 	}

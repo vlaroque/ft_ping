@@ -103,7 +103,7 @@ static error_t args_parsing_fonction(int key, char *arg, struct argp_state *stat
 		if (state->arg_num < 1)
 		{
 			/* Pas assez d'arguments (on attend la destination) */
-			argp_usage(state);
+			argp_error(state, "missing host operand");
 		}
 		break;
 
