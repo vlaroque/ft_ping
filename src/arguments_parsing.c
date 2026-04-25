@@ -1,3 +1,16 @@
+/*****************************************************************************/
+/*                                                                           */
+/*                                                🭈🭆🭂███🭞🭜🭘  ███🭞🭜🭘██████    */
+/*   arguments_parsing.c                       🭈🭆🭂███🭞🭜🭘     🭞🭜🭘   ██████    */
+/*                                          🭈🭆🭂███🭞🭜🭘           🭈🭆🭂███🭞🭜🭘    */
+/*   By: vlaroque                        🭈🭆🭂███🭞🭜🭘           🭈🭆🭂███🭞🭜🭘       */
+/*       vlaroque@student.42.fr          ██████████████████  ██████   🭈🭆🭂    */
+/*                                       ██████████████████  ██████🭈🭆🭂███.fr */
+/*                                                   ██████   🬚🬢🬞🬋🬏🬚🬢🬦🬞🬋🬃    */
+/*                                                   ██████   🬕🬀▐🬂▌🬕🬣▐🬞🬰🬃    */
+/*                                                                           */
+/*****************************************************************************/
+
 #include <argp.h>
 #include <string.h>
 #include <stdio.h>
@@ -17,8 +30,8 @@ static struct argp_option options[] = {
 	{"count",    'c', "count",   0, "stop after <count> replies",                              0},
 	{"preload",  'l', "count",   0, "send <count> number of packages while waiting replies",   0},
 	{"interval", 'i', "seconds", 0, "seconds between sending each packet",                     0},
-	{"size",     's', "bytes",   0, "use <bytes> as number of data bytes to be sent",           0},
-	{"ttl",      't', "ttl",     0, "define <ttl> time to live",                                     0},
+	{"size",     's', "bytes",   0, "use <bytes> as number of data bytes to be sent",          0},
+	{"ttl",      't', "ttl",     0, "define <ttl> time to live",                               0},
 	{"verbose",  'v',  0,        0, "verbose output",                                          0},
 	{0}
 };
