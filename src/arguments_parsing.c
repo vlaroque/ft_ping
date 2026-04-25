@@ -11,14 +11,14 @@
 
 
 static const char doc[]      = "ft_ping - send ICMP ECHO_REQUEST to network hosts";
-static const char args_doc[] = "<DESTINATION>";
+static const char args_doc[] = "HOST ...";
 
 static struct argp_option options[] = {
 	{"count",    'c', "count",   0, "stop after <count> replies",                              0},
 	{"preload",  'l', "count",   0, "send <count> number of packages while waiting replies",   0},
 	{"interval", 'i', "seconds", 0, "seconds between sending each packet",                     0},
-	{"size",     's', "bytes",   0, "use <size> as number of data bytes to be sent",           0},
-	{"ttl",      't', "<TTL>",   0, "define time to live",                                     0},
+	{"size",     's', "bytes",   0, "use <bytes> as number of data bytes to be sent",           0},
+	{"ttl",      't', "ttl",     0, "define <ttl> time to live",                                     0},
 	{"verbose",  'v',  0,        0, "verbose output",                                          0},
 	{0}
 };
