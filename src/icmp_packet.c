@@ -92,6 +92,9 @@ bool open_icmp_socket(ping_env_t *env, int *fd)
 		return false;
 	}
 
+	int on = 1;
+	setsockopt(ret_fd, SOL_SOCKET, SO_BROADCAST, &on, sizeof(on));
+
 	if (env->ttl > 0)
 	{
 		setsockopt(ret_fd, IPPROTO_IP, IP_TTL, &env->ttl, sizeof(env->ttl));
